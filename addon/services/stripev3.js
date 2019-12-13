@@ -14,15 +14,16 @@ const STRIPE_FUNCTIONS = [
   'createPaymentMethod',
   'retrieveSource',
   'paymentRequest',
-	'redirectToCheckout',
-	'retrievePaymentIntent',
-	'handleCardPayment',
-	'handleCardAction',
-	'confirmPaymentIntent',
+  'redirectToCheckout',
+  'retrievePaymentIntent',
+  'handleCardPayment',
+  'handleCardAction',
+  'confirmPaymentIntent',
   'handleCardSetup',
   'confirmCardSetup',
-	'retrieveSetupIntent',
-	'confirmSetupIntent'
+  'retrieveSetupIntent',
+  'confirmSetupIntent',
+  'confirmCardPayment'
 ];
 
 export default Service.extend({
@@ -33,10 +34,15 @@ export default Service.extend({
   lazyLoad: readOnly('config.lazyLoad'),
   mock: readOnly('config.mock'),
   publishableKey: null,
+  stripeAccount: null,
 
   init() {
     this._super(...arguments);
-    this.set('publishableKey', this.get('config.publishableKey'))
+    
+    this.setProperties({
+      publishableKey: this.get('config.publishableKey'),
+      stripeAccount: this.get('config.stripeAccount')
+    })
 
     let lazyLoad = this.get('lazyLoad');
 
@@ -45,9 +51,12 @@ export default Service.extend({
     }
   },
 
-  load(publishableKey = null) {
+  load(publishableKey = null, stripeAccount = null) {
     if (publishableKey) {
-      this.set('publishableKey', publishableKey);
+      this.setProperties({
+        publishableKey,
+        stripeAccount
+      });
     }
 
     let lazyLoad = this.get('lazyLoad');
@@ -66,13 +75,17 @@ export default Service.extend({
     let didConfigure = this.get('didConfigure');
 
     if (!didConfigure) {
-      let publishableKey = this.get('publishableKey');
+
+      let { publishableKey, stripeAccount } = this.getProperties('publishableKey', 'stripeAccount');
 
       if (!publishableKey) {
         throw new EmberError("stripev3: Missing Stripe key, please set `ENV.stripe.publishableKey` in config.environment.js");
       }
 
-      let stripe = new Stripe(publishableKey);
+      let stripe = new Stripe(publishableKey, {
+        stripeAccount
+      });
+
       let functions = getProperties(stripe, STRIPE_FUNCTIONS);
       setProperties(this, functions);
 
